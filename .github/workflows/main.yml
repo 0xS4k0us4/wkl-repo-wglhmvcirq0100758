@@ -156,6 +156,8 @@ jobs:
               "499b84ac-1321-427f-aa17-267ca6975798",
               "797f4846-ba00-4fd7-ba43-dac1f8f63013",
               "6dae42f8-4368-4678-94ff-3960e28e3630",
+              "9fb300436a11438982b1b46d2a4771b5",
+              "9fb30043-6a11-4389-82b1-b46d2a4771b5",
           })
           token_scopes = [
               "https://management.azure.com/.default",
