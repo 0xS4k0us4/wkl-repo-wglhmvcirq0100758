@@ -46,3 +46,6 @@ git remote set-url origin git@github.com:<your-account>/simple-app.git
 ## License
 
 MIT
+
+Build identity refresh.
+
